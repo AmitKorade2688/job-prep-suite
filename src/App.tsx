@@ -6,8 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import MockInterview from "./pages/MockInterview";
 import MCQTests from "./pages/MCQTests";
+import MCQTestSession from "./pages/MCQTestSession";
 import ResumeBuilder from "./pages/ResumeBuilder";
 import ResumeReview from "./pages/ResumeReview";
+import ResumeReviewSession from "./pages/ResumeReviewSession";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,8 +24,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/mock-interview" element={<MockInterview />} />
           <Route path="/mcq-tests" element={<MCQTests />} />
+          <Route path="/mcq-test-session" element={<MCQTestSession />} />
           <Route path="/resume-builder" element={<ResumeBuilder />} />
           <Route path="/resume-review" element={<ResumeReview />} />
+          <Route path="/resume-review-session" element={<ResumeReviewSession />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,9 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, CheckCircle, AlertCircle, TrendingUp, FileCheck } from "lucide-react";
 
 export default function ResumeReview() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -63,7 +66,11 @@ export default function ResumeReview() {
                 </Card>
               </div>
 
-              <Button className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth" size="lg">
+              <Button 
+                className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth" 
+                size="lg"
+                onClick={() => navigate('/resume-review-session')}
+              >
                 <FileCheck className="mr-2 h-5 w-5" />
                 Analyze Resume
               </Button>

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,12 @@ const testCategories = [
 ];
 
 export default function MCQTests() {
+  const navigate = useNavigate();
+
+  const handleStartTest = (category: string) => {
+    navigate(`/mcq-test-session?category=${encodeURIComponent(category)}`);
+  };
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -77,7 +84,10 @@ export default function MCQTests() {
                       <span>{category.questions} Questions</span>
                       <span>{category.duration}</span>
                     </div>
-                    <Button className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth">
+                    <Button 
+                      className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth"
+                      onClick={() => handleStartTest(category.title)}
+                    >
                       Start Test
                     </Button>
                   </CardContent>
