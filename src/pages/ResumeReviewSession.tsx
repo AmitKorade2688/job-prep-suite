@@ -115,13 +115,13 @@ export default function ResumeReviewSession() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold">AI Resume Review</h1>
-            <p className="text-xl text-muted-foreground">
-              Get instant ATS compatibility check and improvement suggestions
-            </p>
-          </div>
+          <div className="max-w-4xl mx-auto space-y-8 px-4 sm:px-6">
+            <div className="text-center space-y-4">
+              <h1 className="text-3xl sm:text-4xl font-bold">AI Resume Review</h1>
+              <p className="text-lg sm:text-xl text-muted-foreground">
+                Get instant ATS compatibility check and improvement suggestions
+              </p>
+            </div>
 
           {!result ? (
             <Card className="shadow-medium border-border">
@@ -158,12 +158,12 @@ export default function ResumeReviewSession() {
                   </label>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4 pt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
                   <Card className="shadow-soft border-border">
                     <CardContent className="pt-6 text-center">
-                      <CheckCircle className="h-8 w-8 mx-auto text-primary mb-3" />
-                      <h3 className="font-semibold mb-1">ATS Score</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-primary mb-3" />
+                      <h3 className="font-semibold mb-1 text-sm sm:text-base">ATS Score</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Compatibility check
                       </p>
                     </CardContent>
@@ -171,9 +171,9 @@ export default function ResumeReviewSession() {
 
                   <Card className="shadow-soft border-border">
                     <CardContent className="pt-6 text-center">
-                      <AlertCircle className="h-8 w-8 mx-auto text-secondary mb-3" />
-                      <h3 className="font-semibold mb-1">Issue Detection</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-secondary mb-3" />
+                      <h3 className="font-semibold mb-1 text-sm sm:text-base">Issue Detection</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Find and fix problems
                       </p>
                     </CardContent>
@@ -181,9 +181,9 @@ export default function ResumeReviewSession() {
 
                   <Card className="shadow-soft border-border">
                     <CardContent className="pt-6 text-center">
-                      <TrendingUp className="h-8 w-8 mx-auto text-accent mb-3" />
-                      <h3 className="font-semibold mb-1">Improvements</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-accent mb-3" />
+                      <h3 className="font-semibold mb-1 text-sm sm:text-base">Improvements</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         AI-powered suggestions
                       </p>
                     </CardContent>
@@ -294,7 +294,7 @@ export default function ResumeReviewSession() {
               </Card>
 
               {/* Action Buttons */}
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Button 
                   className="flex-1 gradient-primary border-0 hover:opacity-90 transition-smooth"
                   onClick={() => {

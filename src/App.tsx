@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import MockInterview from "./pages/MockInterview";
+import VideoInterviewSession from "./pages/VideoInterviewSession";
+import VoiceInterviewSession from "./pages/VoiceInterviewSession";
+import TextInterviewSession from "./pages/TextInterviewSession";
 import MCQTests from "./pages/MCQTests";
 import MCQTestSession from "./pages/MCQTestSession";
 import ResumeBuilder from "./pages/ResumeBuilder";
@@ -23,6 +26,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/mock-interview" element={<MockInterview />} />
+          <Route path="/video-interview" element={<VideoInterviewSession />} />
+          <Route path="/voice-interview" element={<VoiceInterviewSession />} />
+          <Route path="/text-interview" element={<TextInterviewSession />} />
           <Route path="/mcq-tests" element={<MCQTests />} />
           <Route path="/mcq-test-session" element={<MCQTestSession />} />
           <Route path="/resume-builder" element={<ResumeBuilder />} />

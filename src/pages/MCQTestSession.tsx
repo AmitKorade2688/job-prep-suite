@@ -33,6 +33,18 @@ const questionBank: Record<string, Array<{
       options: ["<script href='app.js'>", "<script name='app.js'>", "<script src='app.js'>", "<script file='app.js'>"],
       correctAnswer: 2,
       explanation: "The src attribute is used to specify the URL of an external script file."
+    },
+    {
+      question: "Which JavaScript method is used to select an element by ID?",
+      options: ["getElementById()", "querySelector()", "selectElement()", "findById()"],
+      correctAnswer: 0,
+      explanation: "document.getElementById() is the standard method to select elements by ID."
+    },
+    {
+      question: "What does the 'box-sizing: border-box' property do?",
+      options: ["Adds borders", "Includes padding and border in width", "Creates a box", "Removes margins"],
+      correctAnswer: 1,
+      explanation: "border-box makes width include padding and borders, making sizing more predictable."
     }
   ],
   "Data Structures & Algorithms": [
