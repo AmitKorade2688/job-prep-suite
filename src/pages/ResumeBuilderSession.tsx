@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,13 @@ import {
   Sparkles,
   Plus,
   Trash2,
-  Eye
+  Eye,
+  FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { JakeResumeTemplate } from "@/components/JakeResumeTemplate";
+import html2pdf from "html2pdf.js";
 
 interface PersonalInfo {
   fullName: string;
@@ -67,6 +70,8 @@ export default function ResumeBuilderSession() {
   const [activeTab, setActiveTab] = useState("personal");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const resumeRef = useRef<HTMLDivElement>(null);
   
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     fullName: "",
@@ -278,22 +283,72 @@ export default function ResumeBuilderSession() {
     return resume;
   };
 
-  const downloadResume = () => {
-    const resumeText = generateResumeText();
-    const blob = new Blob([resumeText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${personalInfo.fullName || 'resume'}_resume.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadResume = async () => {
+    setIsDownloading(true);
     
-    toast({
-      title: "Resume Downloaded",
-      description: "Your resume has been saved as a text file.",
-    });
+    try {
+      // Create a temporary container for PDF generation
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      document.body.appendChild(tempContainer);
+
+      // Render the resume template
+      const { createRoot } = await import('react-dom/client');
+      const root = createRoot(tempContainer);
+      
+      await new Promise<void>((resolve) => {
+        root.render(
+          <JakeResumeTemplate
+            personalInfo={personalInfo}
+            experiences={experiences}
+            education={education}
+            skills={skills}
+            projects={projects}
+          />
+        );
+        setTimeout(resolve, 100);
+      });
+
+      const element = tempContainer.firstChild as HTMLElement;
+      
+      const opt = {
+        margin: 0,
+        filename: `${personalInfo.fullName || 'resume'}_resume.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          letterRendering: true
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'letter', 
+          orientation: 'portrait' as const
+        }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      
+      // Cleanup
+      root.unmount();
+      document.body.removeChild(tempContainer);
+
+      toast({
+        title: "Resume Downloaded",
+        description: "Your resume has been saved as a PDF file.",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Download failed",
+        description: "Could not generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -318,22 +373,44 @@ export default function ResumeBuilderSession() {
               <Button 
                 className="gradient-primary border-0"
                 onClick={downloadResume}
+                disabled={isDownloading}
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download
+                {isDownloading ? (
+                  <>
+                    <FileText className="mr-2 h-4 w-4 animate-pulse" />
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </>
+                )}
               </Button>
             </div>
           </div>
 
           {showPreview ? (
-            <Card className="shadow-medium">
+            <Card className="shadow-medium overflow-hidden">
               <CardHeader>
-                <CardTitle>Resume Preview</CardTitle>
+                <CardTitle>Resume Preview (Jake's Format)</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  This is how your resume will look when downloaded as PDF
+                </p>
               </CardHeader>
-              <CardContent>
-                <pre className="whitespace-pre-wrap font-mono text-sm bg-muted p-6 rounded-lg">
-                  {generateResumeText() || "Start filling out your information to see the preview."}
-                </pre>
+              <CardContent className="p-0">
+                <div className="bg-gray-100 p-4 overflow-auto max-h-[800px]">
+                  <div className="mx-auto shadow-lg" style={{ width: 'fit-content' }}>
+                    <JakeResumeTemplate
+                      ref={resumeRef}
+                      personalInfo={personalInfo}
+                      experiences={experiences}
+                      education={education}
+                      skills={skills}
+                      projects={projects}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ) : (
