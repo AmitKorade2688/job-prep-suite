@@ -11,10 +11,10 @@ import TextInterviewSession from "./pages/TextInterviewSession";
 import MCQTests from "./pages/MCQTests";
 import MCQTestSession from "./pages/MCQTestSession";
 import ResumeBuilder from "./pages/ResumeBuilder";
+import ResumeBuilderSession from "./pages/ResumeBuilderSession";
 import ResumeReview from "./pages/ResumeReview";
 import ResumeReviewSession from "./pages/ResumeReviewSession";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -32,6 +32,7 @@ const App = () => (
           <Route path="/mcq-tests" element={<MCQTests />} />
           <Route path="/mcq-test-session" element={<MCQTestSession />} />
           <Route path="/resume-builder" element={<ResumeBuilder />} />
+          <Route path="/resume-builder-session" element={<ResumeBuilderSession />} />
           <Route path="/resume-review" element={<ResumeReview />} />
           <Route path="/resume-review-session" element={<ResumeReviewSession />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
