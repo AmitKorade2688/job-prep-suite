@@ -13,6 +13,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReviewResult {
   score: number;
@@ -58,43 +59,62 @@ export default function ResumeReviewSession() {
     }
   };
 
-  const analyzeResume = () => {
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    // For text-based content, we can read it directly
+    // For PDF/DOC, we'll extract what we can
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        // Basic text extraction - for PDFs this will get the raw text
+        // In production, you'd use a proper PDF parser
+        resolve(content || "Unable to extract text from file. Please paste your resume content.");
+      };
+      reader.onerror = () => {
+        resolve("Unable to read file. Please try again or paste your resume content.");
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  const analyzeResume = async () => {
     if (!file) return;
 
     setIsAnalyzing(true);
 
-    // Simulate AI analysis with realistic timing
-    setTimeout(() => {
-      // Mock analysis result
-      const mockResult: ReviewResult = {
-        score: Math.floor(Math.random() * 20) + 75, // Score between 75-95
-        strengths: [
-          "Clear and concise professional summary",
-          "Well-structured work experience section",
-          "Quantified achievements with specific metrics",
-          "Relevant technical skills section",
-          "Professional formatting and layout"
-        ],
-        issues: [
-          "Missing keywords: 'agile methodology', 'cross-functional teams'",
-          "Work experience bullets could be more action-oriented",
-          "Education section placement could be optimized",
-          "Contact information lacks LinkedIn profile link"
-        ],
-        suggestions: [
-          "Add 2-3 more technical keywords relevant to your target role",
-          "Start each bullet point with strong action verbs",
-          "Include links to your GitHub or portfolio projects",
-          "Optimize file name to include your name and 'resume'",
-          "Consider adding a brief skills summary at the top",
-          "Ensure consistent date formatting throughout",
-          "Add specific technologies used in each project"
-        ]
-      };
+    try {
+      // Extract text from file
+      const resumeText = await extractTextFromFile(file);
+      
+      // Call AI edge function
+      const { data, error } = await supabase.functions.invoke('analyze-resume', {
+        body: { resumeText }
+      });
 
-      setResult(mockResult);
+      if (error) {
+        throw error;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setResult({
+        score: data.score || 70,
+        strengths: data.strengths || ["Resume analyzed successfully"],
+        issues: data.issues || ["No specific issues found"],
+        suggestions: data.suggestions || ["Continue improving your resume"]
+      });
+    } catch (error) {
+      console.error("Resume analysis error:", error);
+      toast({
+        title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Could not analyze resume. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsAnalyzing(false);
-    }, 3000);
+    }
   };
 
   const getScoreColor = (score: number) => {
