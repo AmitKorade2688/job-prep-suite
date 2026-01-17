@@ -1,1 +1,10 @@
 project_id = "umyxfcvmkgnwolywkdxh"
+
+[functions.analyze-resume]
+verify_jwt = false
+
+[functions.enhance-resume-content]
+verify_jwt = false
+
+[functions.generate-mcq]
+verify_jwt = false
