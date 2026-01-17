@@ -48,6 +48,31 @@ interface JakeResumeTemplateProps {
   forPdf?: boolean;
 }
 
+const SectionHeader = ({ title }: { title: string }) => (
+  <div style={{ 
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '8px',
+    width: '100%',
+  }}>
+    <span style={{ 
+      fontSize: '12px', 
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
+      letterSpacing: '1px',
+      whiteSpace: 'nowrap',
+      paddingRight: '8px',
+    }}>
+      {title}
+    </span>
+    <div style={{ 
+      flex: 1,
+      height: '1px',
+      backgroundColor: '#000000',
+    }} />
+  </div>
+);
+
 export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateProps>(
   ({ personalInfo, experiences, education, skills, projects, forPdf = false }, ref) => {
     const filledExperiences = experiences.filter(exp => exp.title || exp.company);
@@ -59,88 +84,48 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
       return description.split('\n').filter(line => line.trim()).map((line, i) => {
         const cleanLine = line.replace(/^[•\-\*]\s*/, '').trim();
         return cleanLine ? (
-          <li key={i} style={{ marginBottom: '2px', lineHeight: '1.3' }}>
+          <li key={i} style={{ marginBottom: '3px', lineHeight: '1.4', paddingLeft: '4px' }}>
             {cleanLine}
           </li>
         ) : null;
       });
     };
 
-    // Use pixel values for PDF to ensure consistent rendering
-    // Letter size: 8.5in x 11in = 816px x 1056px at 96dpi
-    const containerStyle = forPdf ? {
-      fontFamily: "'Times New Roman', Times, serif",
-      fontSize: '11px',
-      lineHeight: '1.2',
-      color: '#000000',
-      backgroundColor: '#ffffff',
-      padding: '48px',
-      width: '816px',
-      minHeight: '1056px',
-      boxSizing: 'border-box' as const,
-    } : {
-      fontFamily: "'Times New Roman', Times, serif",
-      fontSize: '10pt',
-      lineHeight: '1.15',
-      color: '#000000',
-      backgroundColor: '#ffffff',
-      padding: '0.5in',
-      width: '8.5in',
-      minHeight: '11in',
-      boxSizing: 'border-box' as const,
-    };
-
-    const headerStyle = forPdf ? {
-      fontSize: '26px',
-      fontWeight: 'bold' as const,
-      margin: 0,
-      letterSpacing: '1px',
-      textTransform: 'uppercase' as const,
-    } : {
-      fontSize: '24pt',
-      fontWeight: 'bold' as const,
-      margin: 0,
-      letterSpacing: '1px',
-      textTransform: 'uppercase' as const,
-    };
-
-    const sectionHeaderStyle = forPdf ? {
-      fontSize: '12px',
-      fontWeight: 'bold' as const,
-      margin: 0,
-      textTransform: 'uppercase' as const,
-      letterSpacing: '1px',
-    } : {
-      fontSize: '11pt',
-      fontWeight: 'bold' as const,
-      margin: 0,
-      textTransform: 'uppercase' as const,
-      letterSpacing: '1px',
-    };
-
-    const contactStyle = forPdf ? {
-      textAlign: 'center' as const,
-      fontSize: '10px',
-      marginBottom: '14px',
-      color: '#333',
-    } : {
-      textAlign: 'center' as const,
-      fontSize: '9pt',
-      marginBottom: '12px',
-      color: '#333',
-    };
-
     return (
-      <div ref={ref} style={containerStyle}>
+      <div
+        ref={ref}
+        style={{
+          fontFamily: "'Times New Roman', Times, serif",
+          fontSize: '11px',
+          lineHeight: '1.3',
+          color: '#000000',
+          backgroundColor: '#ffffff',
+          padding: '48px',
+          width: '816px',
+          minHeight: '1056px',
+          boxSizing: 'border-box',
+        }}
+      >
         {/* Header - Name */}
         <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-          <h1 style={headerStyle}>
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: 'bold', 
+            margin: 0,
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
+          }}>
             {personalInfo.fullName || 'Your Name'}
           </h1>
         </div>
 
         {/* Contact Info Line */}
-        <div style={contactStyle}>
+        <div style={{ 
+          textAlign: 'center', 
+          fontSize: '11px',
+          marginBottom: '16px',
+          color: '#333'
+        }}>
           {[
             personalInfo.location,
             personalInfo.phone,
@@ -152,15 +137,9 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
 
         {/* Summary Section */}
         {personalInfo.summary && (
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ 
-              borderBottom: '1px solid #000', 
-              paddingBottom: '2px',
-              marginBottom: '6px'
-            }}>
-              <h2 style={sectionHeaderStyle}>Summary</h2>
-            </div>
-            <p style={{ margin: 0, textAlign: 'justify' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <SectionHeader title="Summary" />
+            <p style={{ margin: 0, textAlign: 'justify', lineHeight: '1.4' }}>
               {personalInfo.summary}
             </p>
           </div>
@@ -168,29 +147,23 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
 
         {/* Education Section */}
         {filledEducation.length > 0 && (
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ 
-              borderBottom: '1px solid #000', 
-              paddingBottom: '2px',
-              marginBottom: '6px'
-            }}>
-              <h2 style={sectionHeaderStyle}>Education</h2>
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <SectionHeader title="Education" />
             {filledEducation.map((edu) => (
-              <div key={edu.id} style={{ marginBottom: '8px' }}>
+              <div key={edu.id} style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <span style={{ fontWeight: 'bold' }}>{edu.school}</span>
                     {edu.location && <span>, {edu.location}</span>}
                   </div>
-                  <span>{edu.graduationDate}</span>
+                  <span style={{ flexShrink: 0 }}>{edu.graduationDate}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontStyle: 'italic' }}>
                   <span>{edu.degree}</span>
-                  {edu.gpa && <span>GPA: {edu.gpa}</span>}
+                  {edu.gpa && <span style={{ flexShrink: 0 }}>GPA: {edu.gpa}</span>}
                 </div>
                 {edu.achievements && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: forPdf ? '10px' : '9pt' }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '10px' }}>
                     {edu.achievements}
                   </p>
                 )}
@@ -201,22 +174,16 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
 
         {/* Experience Section */}
         {filledExperiences.length > 0 && (
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ 
-              borderBottom: '1px solid #000', 
-              paddingBottom: '2px',
-              marginBottom: '6px'
-            }}>
-              <h2 style={sectionHeaderStyle}>Experience</h2>
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <SectionHeader title="Experience" />
             {filledExperiences.map((exp) => (
-              <div key={exp.id} style={{ marginBottom: '10px' }}>
+              <div key={exp.id} style={{ marginBottom: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <span style={{ fontWeight: 'bold' }}>{exp.company}</span>
                     {exp.location && <span>, {exp.location}</span>}
                   </div>
-                  <span>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</span>
+                  <span style={{ flexShrink: 0 }}>{exp.startDate} – {exp.current ? 'Present' : exp.endDate}</span>
                 </div>
                 <div style={{ fontStyle: 'italic', marginBottom: '4px' }}>
                   {exp.title}
@@ -224,7 +191,7 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
                 {exp.description && (
                   <ul style={{ 
                     margin: 0, 
-                    paddingLeft: '18px',
+                    paddingLeft: '20px',
                     listStyleType: 'disc'
                   }}>
                     {formatDescription(exp.description)}
@@ -237,16 +204,10 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
 
         {/* Projects Section */}
         {filledProjects.length > 0 && (
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ 
-              borderBottom: '1px solid #000', 
-              paddingBottom: '2px',
-              marginBottom: '6px'
-            }}>
-              <h2 style={sectionHeaderStyle}>Projects</h2>
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <SectionHeader title="Projects" />
             {filledProjects.map((proj) => (
-              <div key={proj.id} style={{ marginBottom: '8px' }}>
+              <div key={proj.id} style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <span style={{ fontWeight: 'bold' }}>{proj.name}</span>
@@ -255,7 +216,7 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
                     )}
                   </div>
                   {proj.link && (
-                    <span style={{ fontSize: forPdf ? '10px' : '9pt', color: '#0066cc' }}>
+                    <span style={{ fontSize: '10px', color: '#0066cc', flexShrink: 0 }}>
                       {proj.link}
                     </span>
                   )}
@@ -263,7 +224,7 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
                 {proj.description && (
                   <ul style={{ 
                     margin: '2px 0 0 0', 
-                    paddingLeft: '18px',
+                    paddingLeft: '20px',
                     listStyleType: 'disc'
                   }}>
                     {formatDescription(proj.description)}
@@ -276,14 +237,8 @@ export const JakeResumeTemplate = forwardRef<HTMLDivElement, JakeResumeTemplateP
 
         {/* Skills Section */}
         {skillsList.length > 0 && (
-          <div style={{ marginBottom: '14px' }}>
-            <div style={{ 
-              borderBottom: '1px solid #000', 
-              paddingBottom: '2px',
-              marginBottom: '6px'
-            }}>
-              <h2 style={sectionHeaderStyle}>Technical Skills</h2>
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <SectionHeader title="Technical Skills" />
             <p style={{ margin: 0 }}>
               <span style={{ fontWeight: 'bold' }}>Technologies: </span>
               {skillsList.join(', ')}
