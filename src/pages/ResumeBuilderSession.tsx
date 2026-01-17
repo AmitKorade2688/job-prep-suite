@@ -292,9 +292,10 @@ export default function ResumeBuilderSession() {
       tempContainer.style.position = 'absolute';
       tempContainer.style.left = '-9999px';
       tempContainer.style.top = '0';
+      tempContainer.style.width = '816px'; // Letter size width at 96dpi
       document.body.appendChild(tempContainer);
 
-      // Render the resume template
+      // Render the resume template with forPdf flag
       const { createRoot } = await import('react-dom/client');
       const root = createRoot(tempContainer);
       
@@ -306,9 +307,11 @@ export default function ResumeBuilderSession() {
             education={education}
             skills={skills}
             projects={projects}
+            forPdf={true}
           />
         );
-        setTimeout(resolve, 100);
+        // Give more time for fonts to load and render
+        setTimeout(resolve, 300);
       });
 
       const element = tempContainer.firstChild as HTMLElement;
@@ -316,16 +319,20 @@ export default function ResumeBuilderSession() {
       const opt = {
         margin: 0,
         filename: `${personalInfo.fullName || 'resume'}_resume.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg', quality: 1 },
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          letterRendering: true
+          letterRendering: true,
+          logging: false,
+          width: 816,
+          windowWidth: 816,
         },
         jsPDF: { 
-          unit: 'in', 
-          format: 'letter', 
-          orientation: 'portrait' as const
+          unit: 'px', 
+          format: [816, 1056], // Letter size in pixels at 96dpi
+          orientation: 'portrait' as const,
+          hotfixes: ['px_scaling']
         }
       };
 
