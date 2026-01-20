@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, interviewContext, conversationHistory, userAnswer } = await req.json();
+    const { action, interviewContext, conversationHistory, userAnswer, totalQuestions, isFirstQuestion, currentQuestionNumber } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -24,26 +24,34 @@ serve(async (req) => {
     if (action === "generate_question") {
       systemPrompt = `You are an expert interviewer conducting a professional interview. 
 Based on the interview context provided by the user (job description, role, topics, etc.), generate relevant interview questions.
-Your questions should:
-- Be directly relevant to the context provided
-- Progress logically based on previous answers
-- Test both technical knowledge and soft skills when appropriate
-- Be clear and specific
+
+IMPORTANT RULES:
+- If this is the first question, you MUST ask "Tell me about yourself" or a close variation like "Tell me about yourself and your background relevant to this role"
+- After the first question, generate questions that:
+  - Are directly relevant to the context provided
+  - Progress logically based on previous answers
+  - Test both technical knowledge and soft skills when appropriate
+  - Are clear and specific
 
 Respond with ONLY a JSON object in this format:
 {
   "question": "Your interview question here",
-  "questionNumber": <number>,
-  "totalQuestions": <total planned questions, usually 5-8>,
+  "questionNumber": <current question number>,
+  "totalQuestions": <total questions as specified>,
   "hint": "A brief hint or what aspect you're testing"
 }`;
 
+      const isFirst = isFirstQuestion || !conversationHistory || conversationHistory.length === 0;
+      
       userPrompt = `Interview Context: ${interviewContext}
+Total Questions Planned: ${totalQuestions || 5}
+Current Question Number: ${currentQuestionNumber || 1}
+Is First Question: ${isFirst}
 
 Conversation so far:
-${conversationHistory?.map((h: { role: string; content: string }) => `${h.role}: ${h.content}`).join('\n') || 'This is the first question'}
+${conversationHistory?.map((h: { role: string; content: string }) => `${h.role}: ${h.content}`).join('\n') || 'No conversation yet - this is the first question'}
 
-Generate the next interview question.`;
+Generate the ${isFirst ? 'first interview question (must be "Tell me about yourself")' : 'next interview question'}.`;
     } else if (action === "analyze_answer") {
       systemPrompt = `You are an expert interview coach analyzing a candidate's response.
 Evaluate the answer based on:

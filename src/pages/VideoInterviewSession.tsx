@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { Video, Mic, MicOff, VideoOff, StopCircle, CheckCircle, AlertCircle, Play, Loader2, Flag } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Video, Mic, MicOff, VideoOff, CheckCircle, AlertCircle, Play, Loader2, Flag, Volume2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,11 +36,12 @@ interface Analytics {
 }
 
 export default function VideoInterviewSession() {
+  const navigate = useNavigate();
   const [stage, setStage] = useState<"setup" | "interview" | "results">("setup");
   const [interviewContext, setInterviewContext] = useState("");
+  const [numberOfQuestions, setNumberOfQuestions] = useState(5);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [questionNumber, setQuestionNumber] = useState(0);
-  const [totalQuestions, setTotalQuestions] = useState(5);
   const [isRecording, setIsRecording] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -45,6 +49,7 @@ export default function VideoInterviewSession() {
   const [isLoading, setIsLoading] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [currentAnswer, setCurrentAnswer] = useState("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
@@ -55,8 +60,20 @@ export default function VideoInterviewSession() {
     }
     return () => {
       stopCamera();
+      window.speechSynthesis.cancel();
     };
   }, [stage]);
+
+  const speakQuestion = (text: string) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const startCamera = async () => {
     try {
@@ -120,16 +137,20 @@ export default function VideoInterviewSession() {
           action: "generate_question",
           interviewContext,
           conversationHistory: [],
+          totalQuestions: numberOfQuestions,
+          isFirstQuestion: true,
         },
       });
 
       if (error) throw error;
 
       setCurrentQuestion(data.question);
-      setQuestionNumber(data.questionNumber || 1);
-      setTotalQuestions(data.totalQuestions || 5);
+      setQuestionNumber(1);
       setConversationHistory([{ role: "interviewer", content: data.question }]);
       setStage("interview");
+      
+      // Speak the first question
+      setTimeout(() => speakQuestion(data.question), 500);
     } catch (error) {
       console.error("Error starting interview:", error);
       toast({
@@ -143,7 +164,7 @@ export default function VideoInterviewSession() {
   };
 
   const submitAnswer = async () => {
-    if (currentAnswer.trim().length < 20) {
+    if (currentAnswer.trim().length < 10) {
       toast({
         title: "Answer too short",
         description: "Please provide a more detailed answer",
@@ -177,7 +198,7 @@ export default function VideoInterviewSession() {
       setCurrentAnswer("");
 
       // Check if we should continue or end
-      if (!analysisData.shouldContinue || questionNumber >= totalQuestions) {
+      if (questionNumber >= numberOfQuestions) {
         await generateAnalytics(newHistory);
         return;
       }
@@ -188,21 +209,26 @@ export default function VideoInterviewSession() {
           action: "generate_question",
           interviewContext,
           conversationHistory: newHistory,
+          totalQuestions: numberOfQuestions,
+          currentQuestionNumber: questionNumber + 1,
         },
       });
 
       if (questionError) throw questionError;
 
       setCurrentQuestion(questionData.question);
-      setQuestionNumber(questionData.questionNumber || questionNumber + 1);
+      setQuestionNumber(questionNumber + 1);
       setConversationHistory([
         ...newHistory,
         { role: "interviewer", content: questionData.question },
       ]);
 
+      // Speak the next question
+      speakQuestion(questionData.question);
+
       toast({
         title: "Answer submitted",
-        description: "Moving to the next question",
+        description: `Moving to question ${questionNumber + 1} of ${numberOfQuestions}`,
       });
     } catch (error) {
       console.error("Error submitting answer:", error);
@@ -218,6 +244,7 @@ export default function VideoInterviewSession() {
 
   const finishInterview = async () => {
     setIsLoading(true);
+    window.speechSynthesis.cancel();
     stopCamera();
     await generateAnalytics(conversationHistory);
   };
@@ -258,7 +285,7 @@ export default function VideoInterviewSession() {
             <div className="text-center space-y-2">
               <h1 className="text-3xl font-bold">Video Interview Setup</h1>
               <p className="text-muted-foreground">
-                Describe the interview context to get started
+                Set up your AI-powered video interview
               </p>
             </div>
 
@@ -266,30 +293,51 @@ export default function VideoInterviewSession() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Video className="h-5 w-5 text-primary" />
-                  Interview Context
+                  Interview Details
                 </CardTitle>
                 <CardDescription>
-                  Provide details about the role, job description, or topics you want to practice
+                  Provide the job description and interview preferences
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Textarea
-                  placeholder="Example: Software Engineer interview for a fintech startup. Focus on React, Node.js, system design, and behavioral questions. The role requires 3+ years of experience..."
-                  value={interviewContext}
-                  onChange={(e) => setInterviewContext(e.target.value)}
-                  className="min-h-[200px] resize-none"
-                />
-                <div className="text-sm text-muted-foreground">
-                  {interviewContext.length} characters
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="context">Job Description / Interview Context</Label>
+                  <Textarea
+                    id="context"
+                    placeholder="Example: Software Engineer interview for a fintech startup. Focus on React, Node.js, system design, and behavioral questions. The role requires 3+ years of experience..."
+                    value={interviewContext}
+                    onChange={(e) => setInterviewContext(e.target.value)}
+                    className="min-h-[180px] resize-none"
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    {interviewContext.length} characters (minimum 20)
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="numQuestions">Number of Questions</Label>
+                  <Input
+                    id="numQuestions"
+                    type="number"
+                    min={3}
+                    max={15}
+                    value={numberOfQuestions}
+                    onChange={(e) => setNumberOfQuestions(Math.min(15, Math.max(3, parseInt(e.target.value) || 5)))}
+                    className="w-full"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Choose between 3-15 questions
+                  </p>
                 </div>
 
                 <div className="bg-muted p-4 rounded-lg space-y-2">
-                  <p className="font-semibold text-sm">Suggestions:</p>
+                  <p className="font-semibold text-sm">How it works:</p>
                   <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>Include the job title and company type</li>
-                    <li>Mention specific skills or technologies</li>
-                    <li>Add any particular areas you want to focus on</li>
-                    <li>Paste a job description for more relevant questions</li>
+                    <li>AI will ask you questions verbally (text-to-speech)</li>
+                    <li>Interview starts with "Tell me about yourself"</li>
+                    <li>Answer each question on camera, then type your response</li>
+                    <li>AI analyzes your answers and provides detailed feedback</li>
+                    <li>You can finish the interview anytime</li>
                   </ul>
                 </div>
 
@@ -424,7 +472,7 @@ export default function VideoInterviewSession() {
 
             <Button 
               className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth"
-              onClick={() => window.location.href = '/mock-interview'}
+              onClick={() => navigate('/mock-interview')}
             >
               Start New Interview
             </Button>
@@ -442,9 +490,9 @@ export default function VideoInterviewSession() {
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold">Video Interview</h1>
             <p className="text-muted-foreground">
-              Question {questionNumber} of {totalQuestions}
+              Question {questionNumber} of {numberOfQuestions}
             </p>
-            <Progress value={(questionNumber / totalQuestions) * 100} className="h-2" />
+            <Progress value={(questionNumber / numberOfQuestions) * 100} className="h-2" />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
@@ -489,14 +537,30 @@ export default function VideoInterviewSession() {
                   >
                     {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => speakQuestion(currentQuestion)}
+                    disabled={isSpeaking}
+                    title="Replay question"
+                  >
+                    <Volume2 className={`h-4 w-4 ${isSpeaking ? 'animate-pulse text-primary' : ''}`} />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="shadow-medium border-border">
               <CardHeader>
-                <CardTitle>Interview Question</CardTitle>
-                <CardDescription>Take your time and answer thoughtfully</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  AI Interviewer
+                  {isSpeaking && (
+                    <span className="text-sm font-normal text-primary animate-pulse flex items-center gap-1">
+                      <Volume2 className="h-4 w-4" /> Speaking...
+                    </span>
+                  )}
+                </CardTitle>
+                <CardDescription>Listen to the question and provide your answer</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="min-h-[100px] bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg">
@@ -504,7 +568,7 @@ export default function VideoInterviewSession() {
                 </div>
 
                 <Textarea
-                  placeholder="Type your answer here (for text input mode)..."
+                  placeholder="Type your answer here after responding on video..."
                   value={currentAnswer}
                   onChange={(e) => setCurrentAnswer(e.target.value)}
                   className="min-h-[120px] resize-none"
@@ -516,7 +580,7 @@ export default function VideoInterviewSession() {
                     className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth"
                     size="lg"
                     onClick={submitAnswer}
-                    disabled={isLoading || currentAnswer.length < 20}
+                    disabled={isLoading || currentAnswer.length < 10}
                   >
                     {isLoading ? (
                       <>
@@ -548,6 +612,7 @@ export default function VideoInterviewSession() {
                     <li>Maintain eye contact with the camera</li>
                     <li>Speak clearly and at a moderate pace</li>
                     <li>Use the STAR method for behavioral questions</li>
+                    <li>Click the speaker icon to replay the question</li>
                   </ul>
                 </div>
               </CardContent>
