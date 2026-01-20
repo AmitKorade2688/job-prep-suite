@@ -1,13 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Video, Mic, MicOff, VideoOff, CheckCircle, AlertCircle, Play, Loader2, Flag, Volume2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Video, Mic, MicOff, VideoOff, CheckCircle, AlertCircle, Play, Loader2, Flag, Volume2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -35,6 +35,50 @@ interface Analytics {
   }>;
 }
 
+// Extend Window interface for SpeechRecognition
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: Event) => void;
+  onend: () => void;
+  onstart: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 export default function VideoInterviewSession() {
   const navigate = useNavigate();
   const [stage, setStage] = useState<"setup" | "interview" | "results">("setup");
@@ -42,17 +86,73 @@ export default function VideoInterviewSession() {
   const [numberOfQuestions, setNumberOfQuestions] = useState(5);
   const [currentQuestion, setCurrentQuestion] = useState("");
   const [questionNumber, setQuestionNumber] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [conversationHistory, setConversationHistory] = useState<ConversationItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [currentAnswer, setCurrentAnswer] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
+
+  // Initialize speech recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript + ' ';
+          } else {
+            interim += transcript;
+          }
+        }
+
+        if (final) {
+          setCurrentAnswer(prev => prev + final);
+        }
+        setInterimTranscript(interim);
+      };
+
+      recognition.onerror = (event: Event) => {
+        console.error('Speech recognition error:', event);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        // Auto-restart if still listening
+        if (isListening && recognitionRef.current) {
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            console.log('Recognition already started');
+          }
+        }
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, [isListening]);
 
   useEffect(() => {
     if (stage === "interview") {
@@ -61,19 +161,58 @@ export default function VideoInterviewSession() {
     return () => {
       stopCamera();
       window.speechSynthesis.cancel();
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
     };
   }, [stage]);
 
-  const speakQuestion = (text: string) => {
+  const speakQuestion = useCallback((text: string) => {
     window.speechSynthesis.cancel();
+    // Stop listening while AI speaks
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      // Start listening after AI finishes speaking
+      startListening();
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      startListening();
+    };
     window.speechSynthesis.speak(utterance);
-  };
+  }, [isListening]);
+
+  const startListening = useCallback(() => {
+    if (recognitionRef.current && !isSpeaking) {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast({
+          title: "Listening...",
+          description: "Speak your answer clearly",
+        });
+      } catch (e) {
+        console.log('Recognition already started or error:', e);
+      }
+    }
+  }, [isSpeaking, toast]);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      setInterimTranscript("");
+    }
+  }, []);
 
   const startCamera = async () => {
     try {
@@ -130,6 +269,17 @@ export default function VideoInterviewSession() {
       return;
     }
 
+    // Check for speech recognition support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        title: "Browser not supported",
+        description: "Speech recognition is not supported in this browser. Please use Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("interview-ai", {
@@ -164,21 +314,25 @@ export default function VideoInterviewSession() {
   };
 
   const submitAnswer = async () => {
-    if (currentAnswer.trim().length < 10) {
+    stopListening();
+    
+    const fullAnswer = currentAnswer.trim();
+    
+    if (fullAnswer.length < 10) {
       toast({
         title: "Answer too short",
-        description: "Please provide a more detailed answer",
+        description: "Please provide a more detailed answer (speak clearly into your microphone)",
         variant: "destructive",
       });
+      startListening();
       return;
     }
 
     setIsLoading(true);
-    setIsRecording(false);
 
     const newHistory = [
       ...conversationHistory,
-      { role: "candidate" as const, content: currentAnswer },
+      { role: "candidate" as const, content: fullAnswer },
     ];
     setConversationHistory(newHistory);
 
@@ -189,13 +343,14 @@ export default function VideoInterviewSession() {
           action: "analyze_answer",
           interviewContext,
           conversationHistory: newHistory,
-          userAnswer: currentAnswer,
+          userAnswer: fullAnswer,
         },
       });
 
       if (analysisError) throw analysisError;
 
       setCurrentAnswer("");
+      setInterimTranscript("");
 
       // Check if we should continue or end
       if (questionNumber >= numberOfQuestions) {
@@ -237,12 +392,14 @@ export default function VideoInterviewSession() {
         description: "Failed to process answer. Please try again.",
         variant: "destructive",
       });
+      startListening();
     } finally {
       setIsLoading(false);
     }
   };
 
   const finishInterview = async () => {
+    stopListening();
     setIsLoading(true);
     window.speechSynthesis.cancel();
     stopCamera();
@@ -335,9 +492,9 @@ export default function VideoInterviewSession() {
                   <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                     <li>AI will ask you questions verbally (text-to-speech)</li>
                     <li>Interview starts with "Tell me about yourself"</li>
-                    <li>Answer each question on camera, then type your response</li>
+                    <li>Speak your answer - it will be transcribed automatically</li>
+                    <li>Click "Next Question" when you're done answering</li>
                     <li>AI analyzes your answers and provides detailed feedback</li>
-                    <li>You can finish the interview anytime</li>
                   </ul>
                 </div>
 
@@ -498,7 +655,14 @@ export default function VideoInterviewSession() {
           <div className="grid lg:grid-cols-2 gap-6">
             <Card className="shadow-medium border-border">
               <CardHeader>
-                <CardTitle>Your Video</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Your Video</span>
+                  {isListening && (
+                    <span className="text-sm font-normal text-primary animate-pulse flex items-center gap-1">
+                      <Mic className="h-4 w-4" /> Listening...
+                    </span>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
@@ -513,10 +677,10 @@ export default function VideoInterviewSession() {
                       <VideoOff className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
-                  {isRecording && (
-                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-destructive text-white px-3 py-1 rounded-full">
+                  {isListening && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-primary text-white px-3 py-1 rounded-full">
                       <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                      Recording
+                      Listening
                     </div>
                   )}
                 </div>
@@ -560,27 +724,69 @@ export default function VideoInterviewSession() {
                     </span>
                   )}
                 </CardTitle>
-                <CardDescription>Listen to the question and provide your answer</CardDescription>
+                <CardDescription>Listen to the question and speak your answer</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="min-h-[100px] bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-lg">
                   <p className="text-lg font-medium">{currentQuestion}</p>
                 </div>
 
-                <Textarea
-                  placeholder="Type your answer here after responding on video..."
-                  value={currentAnswer}
-                  onChange={(e) => setCurrentAnswer(e.target.value)}
-                  className="min-h-[120px] resize-none"
-                  disabled={isLoading}
-                />
+                {/* Transcribed Answer Display */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Your Answer (Voice Transcription)
+                    {isListening && (
+                      <span className="text-xs text-primary animate-pulse">● Recording</span>
+                    )}
+                  </Label>
+                  <div className="min-h-[120px] max-h-[200px] overflow-y-auto bg-muted/50 border border-border rounded-lg p-4">
+                    {currentAnswer || interimTranscript ? (
+                      <p className="text-sm leading-relaxed">
+                        {currentAnswer}
+                        {interimTranscript && (
+                          <span className="text-muted-foreground italic">{interimTranscript}</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground text-sm italic">
+                        {isListening 
+                          ? "Speak now... your words will appear here"
+                          : "Click 'Start Speaking' or wait for the AI to finish speaking"}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {currentAnswer.split(' ').filter(w => w).length} words transcribed
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant={isListening ? "destructive" : "outline"}
+                    className="flex-1"
+                    onClick={isListening ? stopListening : startListening}
+                    disabled={isLoading || isSpeaking}
+                  >
+                    {isListening ? (
+                      <>
+                        <MicOff className="mr-2 h-4 w-4" />
+                        Stop Speaking
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="mr-2 h-4 w-4" />
+                        Start Speaking
+                      </>
+                    )}
+                  </Button>
+                </div>
 
                 <div className="space-y-3">
                   <Button
                     className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth"
                     size="lg"
                     onClick={submitAnswer}
-                    disabled={isLoading || currentAnswer.length < 10}
+                    disabled={isLoading || currentAnswer.trim().length < 10 || isSpeaking}
                   >
                     {isLoading ? (
                       <>
@@ -589,8 +795,8 @@ export default function VideoInterviewSession() {
                       </>
                     ) : (
                       <>
-                        <CheckCircle className="mr-2 h-5 w-5" />
-                        Submit Answer
+                        <ArrowRight className="mr-2 h-5 w-5" />
+                        Next Question
                       </>
                     )}
                   </Button>
