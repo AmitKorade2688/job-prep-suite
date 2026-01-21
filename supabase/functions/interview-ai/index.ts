@@ -22,12 +22,25 @@ serve(async (req) => {
     let userPrompt = "";
 
     if (action === "generate_question") {
+      const isFirst = isFirstQuestion || !conversationHistory || conversationHistory.length === 0;
+      
+      // Always return "Tell me about yourself" as the first question
+      if (isFirst) {
+        return new Response(JSON.stringify({
+          question: "Tell me about yourself and your background relevant to this role.",
+          questionNumber: 1,
+          totalQuestions: totalQuestions || 5,
+          hint: "This helps understand your overall experience and how you present yourself"
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       systemPrompt = `You are an expert interviewer conducting a professional interview. 
 Based on the interview context provided by the user (job description, role, topics, etc.), generate relevant interview questions.
 
 IMPORTANT RULES:
-- If this is the first question, you MUST ask "Tell me about yourself" or a close variation like "Tell me about yourself and your background relevant to this role"
-- After the first question, generate questions that:
+- Generate questions that:
   - Are directly relevant to the context provided
   - Progress logically based on previous answers
   - Test both technical knowledge and soft skills when appropriate
@@ -41,17 +54,14 @@ Respond with ONLY a JSON object in this format:
   "hint": "A brief hint or what aspect you're testing"
 }`;
 
-      const isFirst = isFirstQuestion || !conversationHistory || conversationHistory.length === 0;
-      
       userPrompt = `Interview Context: ${interviewContext}
 Total Questions Planned: ${totalQuestions || 5}
 Current Question Number: ${currentQuestionNumber || 1}
-Is First Question: ${isFirst}
 
 Conversation so far:
-${conversationHistory?.map((h: { role: string; content: string }) => `${h.role}: ${h.content}`).join('\n') || 'No conversation yet - this is the first question'}
+${conversationHistory?.map((h: { role: string; content: string }) => `${h.role}: ${h.content}`).join('\n')}
 
-Generate the ${isFirst ? 'first interview question (must be "Tell me about yourself")' : 'next interview question'}.`;
+Generate the next interview question.`;
     } else if (action === "analyze_answer") {
       systemPrompt = `You are an expert interview coach analyzing a candidate's response.
 Evaluate the answer based on:
