@@ -63,6 +63,7 @@ interface SpeechRecognition extends EventTarget {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives: number;
   start(): void;
   stop(): void;
   abort(): void;
@@ -100,6 +101,9 @@ export default function VideoInterviewSession() {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
+  // Track listening state with a ref to avoid stale closure issues
+  const isListeningRef = useRef(false);
+
   // Initialize speech recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -108,6 +112,13 @@ export default function VideoInterviewSession() {
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        console.log('Speech recognition started');
+        isListeningRef.current = true;
+        setIsListening(true);
+      };
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let interim = '';
@@ -128,31 +139,69 @@ export default function VideoInterviewSession() {
         setInterimTranscript(interim);
       };
 
-      recognition.onerror = (event: Event) => {
-        console.error('Speech recognition error:', event);
+      recognition.onerror = (event: any) => {
+        const errorType = event.error || 'unknown';
+        console.error('Speech recognition error type:', errorType);
+        
+        // Handle specific error types
+        if (errorType === 'not-allowed') {
+          toast({
+            title: "Microphone Access Denied",
+            description: "Please allow microphone access in your browser settings and refresh the page.",
+            variant: "destructive",
+          });
+        } else if (errorType === 'no-speech') {
+          // No speech detected - this is normal, just restart
+          console.log('No speech detected, continuing to listen...');
+          return;
+        } else if (errorType === 'audio-capture') {
+          toast({
+            title: "Microphone Error",
+            description: "Could not capture audio. Make sure your microphone is working.",
+            variant: "destructive",
+          });
+        } else if (errorType === 'aborted') {
+          // User or system aborted - don't show error
+          console.log('Speech recognition aborted');
+          return;
+        }
+        
+        isListeningRef.current = false;
         setIsListening(false);
       };
 
       recognition.onend = () => {
-        // Auto-restart if still listening
-        if (isListening && recognitionRef.current) {
-          try {
-            recognitionRef.current.start();
-          } catch (e) {
-            console.log('Recognition already started');
-          }
+        console.log('Speech recognition ended, isListeningRef:', isListeningRef.current);
+        // Auto-restart if we should still be listening
+        if (isListeningRef.current && recognitionRef.current) {
+          setTimeout(() => {
+            try {
+              if (isListeningRef.current && recognitionRef.current) {
+                recognitionRef.current.start();
+              }
+            } catch (e) {
+              console.log('Could not restart recognition:', e);
+            }
+          }, 100);
         }
       };
 
       recognitionRef.current = recognition;
+    } else {
+      toast({
+        title: "Browser Not Supported",
+        description: "Speech recognition is not available. Please use Chrome or Edge.",
+        variant: "destructive",
+      });
     }
 
     return () => {
+      isListeningRef.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
     };
-  }, [isListening]);
+  }, [toast]);
 
   useEffect(() => {
     if (stage === "interview") {
@@ -167,13 +216,43 @@ export default function VideoInterviewSession() {
     };
   }, [stage]);
 
+  const stopListening = useCallback(() => {
+    isListeningRef.current = false;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.log('Recognition stop error:', e);
+      }
+      setIsListening(false);
+      setInterimTranscript("");
+    }
+  }, []);
+
+  const startListening = useCallback(() => {
+    if (recognitionRef.current && !isSpeaking && !isListeningRef.current) {
+      try {
+        // Small delay to ensure any previous instance is fully stopped
+        setTimeout(() => {
+          if (recognitionRef.current && !isListeningRef.current) {
+            isListeningRef.current = true;
+            recognitionRef.current.start();
+            toast({
+              title: "Listening...",
+              description: "Speak your answer clearly",
+            });
+          }
+        }, 200);
+      } catch (e) {
+        console.log('Recognition start error:', e);
+      }
+    }
+  }, [isSpeaking, toast]);
+
   const speakQuestion = useCallback((text: string) => {
     window.speechSynthesis.cancel();
     // Stop listening while AI speaks
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
+    stopListening();
     
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
@@ -189,30 +268,7 @@ export default function VideoInterviewSession() {
       startListening();
     };
     window.speechSynthesis.speak(utterance);
-  }, [isListening]);
-
-  const startListening = useCallback(() => {
-    if (recognitionRef.current && !isSpeaking) {
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-        toast({
-          title: "Listening...",
-          description: "Speak your answer clearly",
-        });
-      } catch (e) {
-        console.log('Recognition already started or error:', e);
-      }
-    }
-  }, [isSpeaking, toast]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-      setInterimTranscript("");
-    }
-  }, []);
+  }, [startListening, stopListening]);
 
   const startCamera = async () => {
     try {
