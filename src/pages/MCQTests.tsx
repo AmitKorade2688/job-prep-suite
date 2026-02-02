@@ -60,9 +60,12 @@ export default function MCQTests() {
         throw new Error("Invalid response from AI");
       }
 
-      // Store questions in sessionStorage and navigate
+      // Store questions and algorithm info in sessionStorage and navigate
       sessionStorage.setItem('mcq-questions', JSON.stringify(data.questions));
       sessionStorage.setItem('mcq-topic', testTopic);
+      if (data.algorithmInfo) {
+        sessionStorage.setItem('mcq-algorithm', JSON.stringify(data.algorithmInfo));
+      }
       navigate('/mcq-test-session');
 
     } catch (error) {

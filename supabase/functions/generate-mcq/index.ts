@@ -11,14 +11,18 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, numberOfQuestions } = await req.json();
+    const { topic, numberOfQuestions, difficulty } = await req.json();
     
-    console.log(`Generating ${numberOfQuestions} MCQ questions for topic: ${topic}`);
+    console.log(`Generating ${numberOfQuestions} MCQ questions for topic: ${topic}, difficulty: ${difficulty || 'mixed'}`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    const difficultyInstruction = difficulty 
+      ? `Generate ALL questions at ${difficulty.toUpperCase()} difficulty level.`
+      : `Mix difficulty levels: 40% easy, 40% medium, 20% hard.`;
 
     const prompt = `Generate exactly ${numberOfQuestions} multiple choice questions about "${topic}". 
 
@@ -28,7 +32,8 @@ Return ONLY a valid JSON array with this exact structure (no markdown, no code b
     "question": "The question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": 0,
-    "explanation": "Brief explanation of why this is correct"
+    "explanation": "Brief explanation of why this is correct",
+    "difficulty": "easy|medium|hard"
   }
 ]
 
@@ -37,7 +42,11 @@ Requirements:
 - correctAnswer is the zero-based index (0, 1, 2, or 3) of the correct option
 - Questions should be technical and interview-appropriate
 - Cover different aspects of ${topic}
-- Mix difficulty levels (easy, medium, hard)
+- ${difficultyInstruction}
+- IMPORTANT: Each question MUST have a "difficulty" field with value "easy", "medium", or "hard"
+  - Easy: Basic concepts, definitions, straightforward questions
+  - Medium: Application of concepts, requires understanding
+  - Hard: Complex scenarios, multiple concepts, tricky edge cases
 - Explanations should be concise but informative
 
 Generate exactly ${numberOfQuestions} questions, no more, no less.`;
@@ -53,7 +62,7 @@ Generate exactly ${numberOfQuestions} questions, no more, no less.`;
         messages: [
           { 
             role: "system", 
-            content: "You are a technical interviewer creating MCQ questions. Always respond with valid JSON only, no markdown formatting or code blocks." 
+            content: "You are a technical interviewer creating MCQ questions with accurate difficulty classification. Always respond with valid JSON only, no markdown formatting or code blocks." 
           },
           { role: "user", content: prompt },
         ],
@@ -115,22 +124,45 @@ Generate exactly ${numberOfQuestions} questions, no more, no less.`;
       throw new Error("Response is not an array");
     }
 
-    // Validate each question
+    // Validate each question and ensure difficulty tag
     questions = questions.map((q, index) => {
       if (!q.question || !Array.isArray(q.options) || q.options.length !== 4) {
         throw new Error(`Invalid question structure at index ${index}`);
       }
+      
+      // Ensure difficulty is valid
+      const validDifficulties = ['easy', 'medium', 'hard'];
+      let questionDifficulty = q.difficulty?.toLowerCase();
+      if (!validDifficulties.includes(questionDifficulty)) {
+        // Default based on position for mixed generation
+        questionDifficulty = index < Math.floor(questions.length * 0.4) ? 'easy' 
+          : index < Math.floor(questions.length * 0.8) ? 'medium' 
+          : 'hard';
+      }
+      
       return {
         question: q.question,
         options: q.options.slice(0, 4),
         correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : 0,
         explanation: q.explanation || "No explanation provided.",
+        difficulty: questionDifficulty,
       };
     });
 
-    console.log(`Successfully generated ${questions.length} questions`);
+    console.log(`Successfully generated ${questions.length} questions with difficulty tags`);
 
-    return new Response(JSON.stringify({ questions }), {
+    // Include algorithm metadata
+    const algorithmInfo = {
+      name: "Item Response Theory (IRT) Inspired Adaptive Testing",
+      description: "Questions tagged with difficulty levels for adaptive delivery based on learner performance",
+      difficultyDistribution: {
+        easy: questions.filter(q => q.difficulty === 'easy').length,
+        medium: questions.filter(q => q.difficulty === 'medium').length,
+        hard: questions.filter(q => q.difficulty === 'hard').length
+      }
+    };
+
+    return new Response(JSON.stringify({ questions, algorithmInfo }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
