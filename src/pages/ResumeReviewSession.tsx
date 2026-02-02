@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { 
   Upload, 
   CheckCircle, 
@@ -10,16 +11,48 @@ import {
   TrendingUp, 
   FileText,
   XCircle,
-  Sparkles
+  Sparkles,
+  Briefcase,
+  Tag,
+  Brain,
+  BarChart3
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+interface JobRecommendation {
+  title: string;
+  matchScore: number;
+  matchedKeywords: string[];
+}
+
+interface AlgorithmInfo {
+  name: string;
+  description: string;
+  accuracy: string;
+}
 
 interface ReviewResult {
   score: number;
   strengths: string[];
   issues: string[];
   suggestions: string[];
+  recommendedJobTitles?: JobRecommendation[];
+  keywordAnalysis?: {
+    present: string[];
+    missing: string[];
+  };
+  sectionAnalysis?: {
+    summary: number;
+    experience: number;
+    skills: number;
+    education: number;
+    formatting: number;
+  };
+  algorithmsUsed?: {
+    jobMatching: AlgorithmInfo;
+    atsScoring: AlgorithmInfo;
+  };
 }
 
 export default function ResumeReviewSession() {
@@ -103,7 +136,11 @@ export default function ResumeReviewSession() {
         score: data.score || 70,
         strengths: data.strengths || ["Resume analyzed successfully"],
         issues: data.issues || ["No specific issues found"],
-        suggestions: data.suggestions || ["Continue improving your resume"]
+        suggestions: data.suggestions || ["Continue improving your resume"],
+        recommendedJobTitles: data.recommendedJobTitles || [],
+        keywordAnalysis: data.keywordAnalysis || { present: [], missing: [] },
+        sectionAnalysis: data.sectionAnalysis || { summary: 70, experience: 70, skills: 70, education: 70, formatting: 70 },
+        algorithmsUsed: data.algorithmsUsed
       });
     } catch (error) {
       console.error("Resume analysis error:", error);
@@ -247,6 +284,139 @@ export default function ResumeReviewSession() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Job Title Recommendations */}
+              {result.recommendedJobTitles && result.recommendedJobTitles.length > 0 && (
+                <Card className="shadow-medium border-border border-primary/20">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-6 w-6 text-primary" />
+                      <CardTitle>Recommended Job Titles</CardTitle>
+                    </div>
+                    <CardDescription>
+                      Based on TF-IDF keyword matching algorithm
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {result.recommendedJobTitles.map((job, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-muted/30 rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-lg">{job.title}</span>
+                            <Badge variant={job.matchScore >= 70 ? "default" : job.matchScore >= 40 ? "secondary" : "outline"}>
+                              {job.matchScore}% Match
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {job.matchedKeywords.map((keyword, kIndex) => (
+                              <Badge key={kIndex} variant="outline" className="text-xs">
+                                <Tag className="h-3 w-3 mr-1" />
+                                {keyword}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <Progress value={job.matchScore} className="w-full sm:w-24 h-2" />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Keywords Analysis */}
+              {result.keywordAnalysis && (result.keywordAnalysis.present.length > 0 || result.keywordAnalysis.missing.length > 0) && (
+                <Card className="shadow-medium border-border">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-6 w-6 text-secondary" />
+                      <CardTitle>Keyword Analysis</CardTitle>
+                    </div>
+                    <CardDescription>Keywords detected and recommended</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {result.keywordAnalysis.present.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2 text-primary">✓ Keywords Found</p>
+                        <div className="flex flex-wrap gap-2">
+                          {result.keywordAnalysis.present.slice(0, 15).map((keyword, index) => (
+                            <Badge key={index} variant="default" className="bg-primary/10 text-primary">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {result.keywordAnalysis.missing.length > 0 && (
+                      <div>
+                        <p className="text-sm font-medium mb-2 text-destructive">✗ Recommended to Add</p>
+                        <div className="flex flex-wrap gap-2">
+                          {result.keywordAnalysis.missing.slice(0, 10).map((keyword, index) => (
+                            <Badge key={index} variant="outline" className="border-destructive/50 text-destructive">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Section Analysis */}
+              {result.sectionAnalysis && (
+                <Card className="shadow-medium border-border">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="h-6 w-6 text-accent" />
+                      <CardTitle>Section Analysis</CardTitle>
+                    </div>
+                    <CardDescription>Breakdown by resume section</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4">
+                      {Object.entries(result.sectionAnalysis).map(([section, score]) => (
+                        <div key={section} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="capitalize font-medium">{section}</span>
+                            <span className={score >= 80 ? "text-primary" : score >= 60 ? "text-secondary" : "text-destructive"}>
+                              {score}%
+                            </span>
+                          </div>
+                          <Progress value={score} className="h-2" />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Algorithms Used */}
+              {result.algorithmsUsed && (
+                <Card className="shadow-soft border-border bg-muted/20">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-muted-foreground" />
+                      <CardTitle className="text-base">AI/ML Algorithms Used</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="p-3 bg-background rounded-lg border">
+                      <p className="font-medium text-sm">{result.algorithmsUsed.jobMatching.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{result.algorithmsUsed.jobMatching.description}</p>
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        Accuracy: {result.algorithmsUsed.jobMatching.accuracy}
+                      </Badge>
+                    </div>
+                    <div className="p-3 bg-background rounded-lg border">
+                      <p className="font-medium text-sm">{result.algorithmsUsed.atsScoring.name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{result.algorithmsUsed.atsScoring.description}</p>
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        Accuracy: {result.algorithmsUsed.atsScoring.accuracy}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Strengths */}
               <Card className="shadow-medium border-border">
