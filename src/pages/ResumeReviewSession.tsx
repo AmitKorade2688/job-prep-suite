@@ -294,7 +294,7 @@ export default function ResumeReviewSession() {
                       <CardTitle>Recommended Job Titles</CardTitle>
                     </div>
                     <CardDescription>
-                      Based on TF-IDF keyword matching algorithm
+                      Jobs that best match your resume profile
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -390,33 +390,6 @@ export default function ResumeReviewSession() {
                 </Card>
               )}
 
-              {/* Algorithms Used */}
-              {result.algorithmsUsed && (
-                <Card className="shadow-soft border-border bg-muted/20">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-muted-foreground" />
-                      <CardTitle className="text-base">AI/ML Algorithms Used</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="p-3 bg-background rounded-lg border">
-                      <p className="font-medium text-sm">{result.algorithmsUsed.jobMatching.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{result.algorithmsUsed.jobMatching.description}</p>
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        Accuracy: {result.algorithmsUsed.jobMatching.accuracy}
-                      </Badge>
-                    </div>
-                    <div className="p-3 bg-background rounded-lg border">
-                      <p className="font-medium text-sm">{result.algorithmsUsed.atsScoring.name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{result.algorithmsUsed.atsScoring.description}</p>
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        Accuracy: {result.algorithmsUsed.atsScoring.accuracy}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Strengths */}
               <Card className="shadow-medium border-border">

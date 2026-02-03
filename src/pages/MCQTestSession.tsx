@@ -346,26 +346,6 @@ export default function MCQTestSession() {
                 </CardContent>
               </Card>
 
-              {/* Algorithm Info */}
-              <Card className="bg-muted/20 border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Brain className="h-4 w-4" />
-                    AI/ML Algorithm Used
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  <p className="font-medium">Item Response Theory (IRT) Adaptive Testing</p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    Questions adapt based on your performance. Correct answers increase difficulty, 
-                    wrong answers on hard questions decrease it. This provides a more accurate 
-                    assessment of your true ability level.
-                  </p>
-                  <Badge variant="outline" className="mt-2 text-xs">
-                    Accuracy: 88-92% skill estimation
-                  </Badge>
-                </CardContent>
-              </Card>
 
               <div className="space-y-4 max-h-[400px] overflow-y-auto">
                 {orderedQuestions.slice(0, questionsAnswered).map((q, index) => {
