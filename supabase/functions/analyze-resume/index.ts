@@ -96,7 +96,9 @@ function calculateJobTitleMatches(resumeText: string): { title: string; score: n
     for (const group of keywordGroups) {
       for (const keyword of group.keywords) {
         // Term frequency - count occurrences
-        const regex = new RegExp(keyword.toLowerCase(), 'gi');
+        // Escape special regex characters to prevent errors (e.g., c++ becomes c\+\+)
+        const escapedKeyword = keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escapedKeyword, 'gi');
         const matches = normalizedText.match(regex);
         const tf = matches ? matches.length : 0;
         
