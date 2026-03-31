@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { 
   User, 
   Briefcase, 
@@ -18,12 +22,69 @@ import {
   Plus,
   Trash2,
   Eye,
-  FileText
+  FileText,
+  CalendarIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { JakeResumeTemplate } from "@/components/JakeResumeTemplate";
 import html2pdf from "html2pdf.js";
+
+// Validation helpers
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPhone = (phone: string) => /^\d{10}$/.test(phone.replace(/[\s\-\(\)\+]/g, ''));
+const isValidUrl = (url: string) => {
+  if (!url) return true;
+  try {
+    const withProtocol = url.startsWith('http') ? url : `https://${url}`;
+    new URL(withProtocol);
+    return true;
+  } catch { return false; }
+};
+
+interface FieldErrors {
+  [key: string]: string;
+}
+
+const DatePickerField = ({ 
+  label, value, onChange, placeholder = "Select date" 
+}: { 
+  label: string; value: string; onChange: (val: string) => void; placeholder?: string;
+}) => {
+  const parsed = value ? new Date(value) : undefined;
+  const validDate = parsed && !isNaN(parsed.getTime()) ? parsed : undefined;
+  
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal h-10",
+              !value && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {value || <span>{placeholder}</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={validDate}
+            onSelect={(date) => {
+              if (date) onChange(format(date, "MMM yyyy"));
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
 
 interface PersonalInfo {
   fullName: string;
