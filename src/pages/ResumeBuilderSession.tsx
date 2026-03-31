@@ -695,22 +695,18 @@ export default function ResumeBuilderSession() {
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-2">
-                              <Label>Start Date</Label>
-                              <Input
-                                placeholder="Jan 2022"
-                                value={exp.startDate}
-                                onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>End Date</Label>
-                              <Input
-                                placeholder="Present"
-                                value={exp.current ? 'Present' : exp.endDate}
-                                onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
-                              />
-                            </div>
+                            <DatePickerField
+                              label="Start Date"
+                              value={exp.startDate}
+                              onChange={(val) => updateExperience(exp.id, 'startDate', val)}
+                              placeholder="Select start date"
+                            />
+                            <DatePickerField
+                              label="End Date"
+                              value={exp.current ? 'Present' : exp.endDate}
+                              onChange={(val) => updateExperience(exp.id, 'endDate', val)}
+                              placeholder="Select end date"
+                            />
                           </div>
                         </div>
                         <div className="space-y-2">
