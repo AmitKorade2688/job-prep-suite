@@ -563,17 +563,27 @@ export default function ResumeBuilderSession() {
                           type="email"
                           placeholder="john@example.com"
                           value={personalInfo.email}
-                          onChange={(e) => setPersonalInfo({...personalInfo, email: e.target.value})}
+                          onChange={(e) => {
+                            setPersonalInfo({...personalInfo, email: e.target.value});
+                            validateField('email', e.target.value);
+                          }}
+                          className={errors.email ? 'border-destructive' : ''}
                         />
+                        {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone</Label>
+                        <Label htmlFor="phone">Phone (10 digits)</Label>
                         <Input
                           id="phone"
-                          placeholder="+1 (555) 123-4567"
+                          placeholder="9876543210"
                           value={personalInfo.phone}
-                          onChange={(e) => setPersonalInfo({...personalInfo, phone: e.target.value})}
+                          onChange={(e) => {
+                            setPersonalInfo({...personalInfo, phone: e.target.value});
+                            validateField('phone', e.target.value);
+                          }}
+                          className={errors.phone ? 'border-destructive' : ''}
                         />
+                        {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="location">Location</Label>
@@ -590,17 +600,27 @@ export default function ResumeBuilderSession() {
                           id="linkedin"
                           placeholder="linkedin.com/in/johndoe"
                           value={personalInfo.linkedin}
-                          onChange={(e) => setPersonalInfo({...personalInfo, linkedin: e.target.value})}
+                          onChange={(e) => {
+                            setPersonalInfo({...personalInfo, linkedin: e.target.value});
+                            validateField('linkedin', e.target.value);
+                          }}
+                          className={errors.linkedin ? 'border-destructive' : ''}
                         />
+                        {errors.linkedin && <p className="text-xs text-destructive">{errors.linkedin}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="portfolio">Portfolio/Website</Label>
                         <Input
                           id="portfolio"
-                          placeholder="johndoe.com"
+                          placeholder="https://johndoe.com"
                           value={personalInfo.portfolio}
-                          onChange={(e) => setPersonalInfo({...personalInfo, portfolio: e.target.value})}
+                          onChange={(e) => {
+                            setPersonalInfo({...personalInfo, portfolio: e.target.value});
+                            validateField('portfolio', e.target.value);
+                          }}
+                          className={errors.portfolio ? 'border-destructive' : ''}
                         />
+                        {errors.portfolio && <p className="text-xs text-destructive">{errors.portfolio}</p>}
                       </div>
                     </div>
                     <div className="space-y-2">
