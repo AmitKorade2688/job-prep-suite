@@ -158,6 +158,39 @@ export default function ResumeBuilderSession() {
     { id: "1", name: "", description: "", technologies: "", link: "" }
   ]);
 
+  const [errors, setErrors] = useState<FieldErrors>({});
+
+  const validateField = (field: string, value: string) => {
+    const newErrors = { ...errors };
+    switch (field) {
+      case 'email':
+        if (value && !isValidEmail(value)) newErrors.email = 'Please enter a valid email address';
+        else delete newErrors.email;
+        break;
+      case 'phone':
+        if (value && !isValidPhone(value)) newErrors.phone = 'Phone number must be 10 digits';
+        else delete newErrors.phone;
+        break;
+      case 'linkedin':
+        if (value && !isValidUrl(value)) newErrors.linkedin = 'Please enter a valid URL';
+        else delete newErrors.linkedin;
+        break;
+      case 'portfolio':
+        if (value && !isValidUrl(value)) newErrors.portfolio = 'Please enter a valid URL';
+        else delete newErrors.portfolio;
+        break;
+    }
+    setErrors(newErrors);
+  };
+
+  const validateProjectUrl = (projId: string, value: string) => {
+    const newErrors = { ...errors };
+    const key = `project_link_${projId}`;
+    if (value && !isValidUrl(value)) newErrors[key] = 'Please enter a valid URL';
+    else delete newErrors[key];
+    setErrors(newErrors);
+  };
+
   const addExperience = () => {
     setExperiences([...experiences, {
       id: Date.now().toString(),
