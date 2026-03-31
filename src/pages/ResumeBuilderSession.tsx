@@ -785,14 +785,12 @@ export default function ResumeBuilderSession() {
                               onChange={(e) => updateEducation(edu.id, 'location', e.target.value)}
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label>Graduation Date</Label>
-                            <Input
-                              placeholder="May 2020"
-                              value={edu.graduationDate}
-                              onChange={(e) => updateEducation(edu.id, 'graduationDate', e.target.value)}
-                            />
-                          </div>
+                          <DatePickerField
+                            label="Graduation Date"
+                            value={edu.graduationDate}
+                            onChange={(val) => updateEducation(edu.id, 'graduationDate', val)}
+                            placeholder="Select graduation date"
+                          />
                           <div className="space-y-2">
                             <Label>GPA (Optional)</Label>
                             <Input
