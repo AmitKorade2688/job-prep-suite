@@ -876,10 +876,15 @@ export default function ResumeBuilderSession() {
                           <div className="space-y-2">
                             <Label>Link (Optional)</Label>
                             <Input
-                              placeholder="github.com/username/project"
+                              placeholder="https://github.com/username/project"
                               value={proj.link}
-                              onChange={(e) => updateProject(proj.id, 'link', e.target.value)}
+                              onChange={(e) => {
+                                updateProject(proj.id, 'link', e.target.value);
+                                validateProjectUrl(proj.id, e.target.value);
+                              }}
+                              className={errors[`project_link_${proj.id}`] ? 'border-destructive' : ''}
                             />
+                            {errors[`project_link_${proj.id}`] && <p className="text-xs text-destructive">{errors[`project_link_${proj.id}`]}</p>}
                           </div>
                         </div>
                         <div className="space-y-2">
