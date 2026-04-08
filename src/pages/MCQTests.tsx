@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Code, Database, Network, Cpu, Globe, CheckCircle, Sparkles, Loader2 } from "lucide-react";
+import { Code, Database, Network, Cpu, Globe, CheckCircle, Sparkles, Loader2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
 
 const suggestedTopics = [
   { title: "Web Development", icon: Globe, description: "HTML, CSS, JavaScript, React" },
@@ -18,6 +19,16 @@ const suggestedTopics = [
   { title: "Operating Systems", icon: Cpu, description: "Processes, Memory, File Systems" },
   { title: "Core CS Fundamentals", icon: CheckCircle, description: "OOP, Design Patterns" },
 ];
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 }
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } }
+};
 
 export default function MCQTests() {
   const navigate = useNavigate();
@@ -48,19 +59,10 @@ export default function MCQTests() {
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      if (!data.questions || !Array.isArray(data.questions)) throw new Error("Invalid response from AI");
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data.questions || !Array.isArray(data.questions)) {
-        throw new Error("Invalid response from AI");
-      }
-
-      // Store questions and algorithm info in sessionStorage and navigate
       sessionStorage.setItem('mcq-questions', JSON.stringify(data.questions));
       sessionStorage.setItem('mcq-topic', testTopic);
       if (data.algorithmInfo) {
@@ -81,111 +83,148 @@ export default function MCQTests() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold">AI-Powered MCQ Tests</h1>
-            <p className="text-xl text-muted-foreground">
-              Tell the AI what you want to be tested on, and it will generate questions on the spot
-            </p>
-          </div>
+      <main className="container mx-auto px-4 py-16">
+        <div className="max-w-5xl mx-auto space-y-12">
+          <motion.div 
+            className="text-center space-y-4"
+            initial="hidden" animate="visible" variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp} transition={{ duration: 0.5 }}>
+              <div className="inline-flex items-center gap-2 text-primary text-sm font-semibold uppercase tracking-wider mb-2">
+                <div className="w-8 h-px bg-primary" />
+                Test Your Knowledge
+                <div className="w-8 h-px bg-primary" />
+              </div>
+            </motion.div>
+            <motion.h1 className="text-4xl md:text-5xl font-bold" variants={fadeInUp} transition={{ duration: 0.5 }}>
+              AI-Powered MCQ Tests
+            </motion.h1>
+            <motion.p className="text-lg text-muted-foreground max-w-2xl mx-auto" variants={fadeInUp} transition={{ duration: 0.5 }}>
+              Tell the AI what you want to be tested on, and it will generate adaptive questions on the spot
+            </motion.p>
+          </motion.div>
 
           {/* Custom Test Generator */}
-          <Card className="shadow-large border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Generate Custom Test
-              </CardTitle>
-              <CardDescription>
-                Describe what you want to be tested on, e.g., "15 questions on DBMS normalization and SQL joins"
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="prompt">What do you want to be tested on?</Label>
-                <Textarea
-                  id="prompt"
-                  placeholder="e.g., 'React hooks and state management', 'DBMS normalization concepts', 'JavaScript async/await and promises'..."
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  className="min-h-[80px]"
-                  disabled={isGenerating}
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="space-y-2 sm:w-48">
-                  <Label htmlFor="questions">Number of Questions</Label>
-                  <Input
-                    id="questions"
-                    type="number"
-                    min={5}
-                    max={30}
-                    value={numberOfQuestions}
-                    onChange={(e) => setNumberOfQuestions(parseInt(e.target.value) || 10)}
+          <motion.div initial="hidden" animate="visible" variants={fadeInUp} transition={{ duration: 0.5, delay: 0.2 }}>
+            <Card className="shadow-large border-primary/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+              <CardHeader className="relative">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <div className="inline-flex w-10 h-10 rounded-xl bg-primary/10 items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  Generate Custom Test
+                </CardTitle>
+                <CardDescription className="text-base">
+                  Describe what you want to be tested on, e.g., "15 questions on DBMS normalization and SQL joins"
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 relative">
+                <div className="space-y-2">
+                  <Label htmlFor="prompt">What do you want to be tested on?</Label>
+                  <Textarea
+                    id="prompt"
+                    placeholder="e.g., 'React hooks and state management', 'DBMS normalization concepts', 'JavaScript async/await and promises'..."
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    className="min-h-[80px] transition-smooth focus:shadow-glow"
                     disabled={isGenerating}
                   />
                 </div>
-                <div className="flex-1 flex items-end">
-                  <Button 
-                    className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth"
-                    onClick={() => handleGenerateTest()}
-                    disabled={isGenerating || !customPrompt.trim()}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating Questions...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Generate Test
-                      </>
-                    )}
-                  </Button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="space-y-2 sm:w-48">
+                    <Label htmlFor="questions">Number of Questions</Label>
+                    <Input
+                      id="questions"
+                      type="number"
+                      min={5}
+                      max={30}
+                      value={numberOfQuestions}
+                      onChange={(e) => setNumberOfQuestions(parseInt(e.target.value) || 10)}
+                      disabled={isGenerating}
+                    />
+                  </div>
+                  <div className="flex-1 flex items-end">
+                    <Button 
+                      className="w-full gradient-primary border-0 hover:opacity-90 transition-smooth shadow-glow h-11"
+                      onClick={() => handleGenerateTest()}
+                      disabled={isGenerating || !customPrompt.trim()}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating Questions...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate Test
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Quick Topics */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-center">Or choose a topic</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-6">
+            <motion.h2 
+              className="text-2xl font-bold text-center"
+              initial="hidden" whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+              transition={{ duration: 0.5 }}
+            >
+              Or choose a topic
+            </motion.h2>
+            <motion.div 
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+              initial="hidden" whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+            >
               {suggestedTopics.map((topic) => {
                 const Icon = topic.icon;
                 return (
-                  <Card 
-                    key={topic.title} 
-                    className="shadow-soft hover:shadow-medium transition-smooth border-border cursor-pointer group"
-                    onClick={() => !isGenerating && handleGenerateTest(topic.title)}
-                  >
-                    <CardHeader className="pb-3">
-                      <Icon className="h-8 w-8 text-primary mb-2 group-hover:scale-110 transition-smooth" />
-                      <CardTitle className="text-lg">{topic.title}</CardTitle>
-                      <CardDescription className="text-sm">{topic.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant="outline"
-                        className="w-full transition-smooth group-hover:bg-primary group-hover:text-primary-foreground"
-                        disabled={isGenerating}
-                      >
-                        {isGenerating ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          `Generate ${numberOfQuestions} Questions`
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <motion.div key={topic.title} variants={fadeInUp} transition={{ duration: 0.4 }}>
+                    <Card 
+                      className="shadow-soft hover:shadow-large transition-smooth border-border cursor-pointer group relative overflow-hidden h-full"
+                      onClick={() => !isGenerating && handleGenerateTest(topic.title)}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary opacity-0 group-hover:opacity-[0.04] transition-smooth" />
+                      <CardHeader className="pb-3 relative">
+                        <div className="inline-flex w-12 h-12 rounded-2xl bg-primary/10 items-center justify-center mb-2 group-hover:scale-110 transition-bounce">
+                          <Icon className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">{topic.title}</CardTitle>
+                        <CardDescription className="text-sm">{topic.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <Button 
+                          variant="outline"
+                          className="w-full transition-smooth group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary"
+                          disabled={isGenerating}
+                        >
+                          {isGenerating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              Generate {numberOfQuestions} Questions
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           </div>
         </div>
       </main>
