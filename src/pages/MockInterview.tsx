@@ -63,7 +63,7 @@ export default function MockInterview() {
           </motion.div>
 
           <motion.div 
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto"
             initial="hidden" whileInView="visible"
             viewport={{ once: true }}
             variants={staggerContainer}
