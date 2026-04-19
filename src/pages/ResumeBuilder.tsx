@@ -93,16 +93,6 @@ export default function ResumeBuilder() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
 
-                <div className="flex items-center justify-center gap-4 pt-2">
-                  <Button variant="outline" className="transition-smooth hover:shadow-soft">
-                    <Download className="mr-2 h-4 w-4" />
-                    Import from LinkedIn
-                  </Button>
-                  <Button variant="outline" className="transition-smooth hover:shadow-soft">
-                    <Download className="mr-2 h-4 w-4" />
-                    Upload Existing Resume
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
