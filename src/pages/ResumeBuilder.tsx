@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Layout, Sparkles, Download, ArrowRight } from "lucide-react";
+import { FileText, Layout, Sparkles, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 const fadeInUp = {
