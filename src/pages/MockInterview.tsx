@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Video, MessageSquare, TrendingUp, ArrowRight } from "lucide-react";
+import { Video, MessageSquare, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 const fadeInUp = {
@@ -32,14 +32,6 @@ const interviewTypes = [
     route: "/text-interview",
     gradient: "from-secondary to-accent"
   },
-  {
-    icon: TrendingUp,
-    title: "Interview Analytics",
-    description: "Review your past interviews, track improvement over time, and identify areas to focus on",
-    action: "View Analytics",
-    route: null,
-    gradient: "from-accent to-primary"
-  }
 ];
 
 export default function MockInterview() {

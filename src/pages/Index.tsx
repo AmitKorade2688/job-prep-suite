@@ -132,13 +132,12 @@ export default function Index() {
               variants={fadeInUp}
               transition={{ duration: 0.6 }}
             >
-              <Button size="lg" className="gradient-primary border-0 hover:opacity-90 transition-smooth text-lg px-8 h-13 shadow-glow">
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 h-13 transition-smooth glass border-border">
-                Watch Demo
-              </Button>
+              <Link to="/mock-interview">
+                <Button size="lg" className="gradient-primary border-0 hover:opacity-90 transition-smooth text-lg px-8 h-13 shadow-glow">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
             </motion.div>
 
             {/* Stats */}
@@ -294,10 +293,12 @@ export default function Index() {
                 <p className="text-lg mb-10 opacity-90 max-w-xl mx-auto">
                   Join thousands of successful candidates who prepared with Careermate AI
                 </p>
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-10 h-13 font-semibold shadow-large">
-                  Start Your Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+                <Link to="/mock-interview">
+                  <Button size="lg" className="bg-white text-primary hover:bg-white/90 text-lg px-10 h-13 font-semibold shadow-large">
+                    Start Your Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </motion.div>
